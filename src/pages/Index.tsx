@@ -1,4 +1,5 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
+import confetti from "canvas-confetti";
 import { motion, AnimatePresence } from "framer-motion";
 import { Heart, PartyPopper } from "lucide-react";
 import ChallengeCard from "@/components/ChallengeCard";
@@ -21,6 +22,19 @@ const CHALLENGES = [
 const Index = () => {
   const [unlockedCount, setUnlockedCount] = useState(0);
   const allDone = unlockedCount === CHALLENGES.length;
+
+  useEffect(() => {
+    if (allDone) {
+      const duration = 3000;
+      const end = Date.now() + duration;
+      const frame = () => {
+        confetti({ particleCount: 3, angle: 60, spread: 55, origin: { x: 0 } });
+        confetti({ particleCount: 3, angle: 120, spread: 55, origin: { x: 1 } });
+        if (Date.now() < end) requestAnimationFrame(frame);
+      };
+      frame();
+    }
+  }, [allDone]);
 
   const handleUnlock = useCallback(
     (index: number) => (password: string) => {
