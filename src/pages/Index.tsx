@@ -19,7 +19,10 @@ const CHALLENGES = [
 ];
 
 const Index = () => {
-  const [unlockedCount, setUnlockedCount] = useState(0);
+  const [unlockedCount, setUnlockedCount] = useState(() => {
+    const saved = localStorage.getItem("unlockedCount");
+    return saved ? Math.min(Number(saved), CHALLENGES.length) : 0;
+  });
   const allDone = unlockedCount === CHALLENGES.length;
 
   useEffect(() => {
@@ -41,7 +44,11 @@ const Index = () => {
   const handleUnlock = useCallback(
     (index: number) => (password: string) => {
       if (password.toLowerCase().trim() === CHALLENGES[index].password) {
-        setUnlockedCount((prev) => Math.max(prev, index + 1));
+        setUnlockedCount((prev) => {
+          const next = Math.max(prev, index + 1);
+          localStorage.setItem("unlockedCount", String(next));
+          return next;
+        });
         return true;
       }
       return false;
