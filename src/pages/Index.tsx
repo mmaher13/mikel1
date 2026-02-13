@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Heart, PartyPopper } from "lucide-react";
 import ChallengeCard from "@/components/ChallengeCard";
 import FloatingHearts from "@/components/FloatingHearts";
+import BackgroundMusic from "@/components/BackgroundMusic";
 
 const CHALLENGES = [
   { challenge: "Kiss like the first time", letter: "G", password: "kiss" },
@@ -39,6 +40,7 @@ const Index = () => {
   return (
     <div className="min-h-screen romantic-gradient relative overflow-hidden">
       <FloatingHearts />
+      <BackgroundMusic />
 
       <div className="relative z-10 max-w-2xl mx-auto px-4 py-10 md:py-16">
         {/* Header */}
