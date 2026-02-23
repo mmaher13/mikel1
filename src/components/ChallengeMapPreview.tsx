@@ -1,7 +1,5 @@
 import { useState } from "react";
-import { MapContainer, TileLayer, CircleMarker } from "react-leaflet";
 import { Navigation } from "lucide-react";
-import "leaflet/dist/leaflet.css";
 
 interface ChallengeMapPreviewProps {
   latitude: number;
@@ -24,30 +22,18 @@ const ChallengeMapPreview = ({ latitude, longitude, radiusMeters, hasGps, title 
     window.open(url, "_blank");
   };
 
+  // Use OpenStreetMap static tile as a simple map preview
+  const mapUrl = `https://www.openstreetmap.org/export/embed.html?bbox=${longitude - 0.005},${latitude - 0.003},${longitude + 0.005},${latitude + 0.003}&layer=mapnik&marker=${latitude},${longitude}`;
+
   return (
     <div className="mt-3 space-y-2">
       <div className="rounded-xl overflow-hidden border border-border" style={{ height: 180 }}>
-        <MapContainer
-          center={[latitude, longitude]}
-          zoom={15}
-          style={{ height: "100%", width: "100%" }}
-          scrollWheelZoom={false}
-          zoomControl={false}
-          dragging={false}
-          attributionControl={false}
-        >
-          <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-          <CircleMarker
-            center={[latitude, longitude]}
-            radius={8}
-            pathOptions={{
-              color: "hsl(340, 82%, 60%)",
-              fillColor: "hsl(340, 82%, 60%)",
-              fillOpacity: 0.3,
-              weight: 2,
-            }}
-          />
-        </MapContainer>
+        <iframe
+          src={mapUrl}
+          style={{ width: "100%", height: "100%", border: 0 }}
+          loading="lazy"
+          title={`Map for ${title}`}
+        />
       </div>
       <button
         onClick={openDirections}
