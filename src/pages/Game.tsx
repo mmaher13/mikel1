@@ -176,9 +176,6 @@ const Game = () => {
             Adventure Challenges
           </h1>
 
-          {geoError && (
-            <p className="text-destructive text-sm font-body mt-2">📍 {geoError}</p>
-          )}
           {position && (
             <p className="text-muted-foreground/50 text-xs font-body mt-1">
               📍 GPS active
