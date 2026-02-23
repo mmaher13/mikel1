@@ -1,13 +1,14 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { Heart, PartyPopper, MapPin, LogOut, Gift } from "lucide-react";
+import { Heart, PartyPopper, MapPin, LogOut, Gift, Bell } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { getPlayer, clearPlayer } from "@/lib/playerStore";
 import { useGeolocation } from "@/hooks/useGeolocation";
 import FloatingHearts from "@/components/FloatingHearts";
 import BackgroundMusic from "@/components/BackgroundMusic";
 import ChallengeMapPreview from "@/components/ChallengeMapPreview";
+import { useToast } from "@/hooks/use-toast";
 
 interface Challenge {
   id: string;
@@ -29,6 +30,7 @@ const Game = () => {
   const navigate = useNavigate();
   const player = getPlayer();
   const { position, error: geoError } = useGeolocation();
+  const { toast } = useToast();
   const [challenges, setChallenges] = useState<Challenge[]>([]);
   const [completed, setCompleted] = useState<Set<string>>(new Set());
   const [password, setPassword] = useState("");
@@ -37,6 +39,7 @@ const Game = () => {
   const [giftMessage, setGiftMessage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const trackIntervalRef = useRef<number | null>(null);
+  const challengeIdsRef = useRef<Set<string>>(new Set());
 
   useEffect(() => {
     if (!player) {
@@ -68,6 +71,29 @@ const Game = () => {
       if (trackIntervalRef.current) clearInterval(trackIntervalRef.current);
     };
   }, [player?.id, !!position]);
+  // Listen for new challenges via realtime
+  useEffect(() => {
+    if (!player) return;
+
+    const channel = supabase
+      .channel("new-challenges")
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "challenges" },
+        () => {
+          toast({
+            title: "🆕 New Challenge Available!",
+            description: "A new challenge has been added. Check it out!",
+          });
+          loadData();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [player?.id]);
 
   const loadData = async () => {
     const [challengesRes, progressRes] = await Promise.all([
