@@ -176,11 +176,6 @@ const Game = () => {
             Adventure Challenges
           </h1>
 
-          {position && (
-            <p className="text-muted-foreground/50 text-xs font-body mt-1">
-              📍 GPS active
-            </p>
-          )}
 
           {/* Revealed letters */}
           <div className="mt-6 flex justify-center gap-1.5 flex-wrap">
