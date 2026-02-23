@@ -71,20 +71,17 @@ const Game = () => {
 
   const loadData = async () => {
     const [challengesRes, progressRes] = await Promise.all([
-      supabase
-        .from("challenges")
-        .select("id, title, description, letter, latitude, longitude, radius_meters, sort_order, gift_description")
-        .eq("is_active", true)
-        .order("sort_order"),
-      supabase
-        .from("player_progress")
-        .select("challenge_id")
-        .eq("player_id", player!.id),
+      supabase.functions.invoke("player-api", {
+        body: { action: "get-challenges" },
+      }),
+      supabase.functions.invoke("player-api", {
+        body: { action: "get-progress", player_id: player!.id },
+      }),
     ]);
 
-    if (challengesRes.data) setChallenges(challengesRes.data);
-    if (progressRes.data) {
-      setCompleted(new Set(progressRes.data.map((p: CompletedChallenge) => p.challenge_id)));
+    if (challengesRes.data?.challenges) setChallenges(challengesRes.data.challenges);
+    if (progressRes.data?.progress) {
+      setCompleted(new Set(progressRes.data.progress.map((p: CompletedChallenge) => p.challenge_id)));
     }
   };
 
