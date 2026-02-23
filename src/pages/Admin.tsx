@@ -115,15 +115,35 @@ const Admin = () => {
     return Object.entries(days).sort(([a], [b]) => b.localeCompare(a));
   }, [locations]);
 
+  const parseDMS = (input: string): number | null => {
+    const cleaned = input.trim();
+    // Try decimal first
+    const decimal = parseFloat(cleaned);
+    if (!isNaN(decimal) && /^-?\d+(\.\d+)?$/.test(cleaned)) return decimal;
+    // Try DMS: 9°54'53.0"N or 84°16'13.4"W
+    const match = cleaned.match(/(\d+)[°]\s*(\d+)[′']\s*([\d.]+)[″"]\s*([NSEWnsew])/);
+    if (match) {
+      const deg = parseFloat(match[1]) + parseFloat(match[2]) / 60 + parseFloat(match[3]) / 3600;
+      return (match[4].toUpperCase() === 'S' || match[4].toUpperCase() === 'W') ? -deg : deg;
+    }
+    return null;
+  };
+
   const saveChallenge = async () => {
+    const lat = parseDMS(form.latitude);
+    const lng = parseDMS(form.longitude);
+    if (lat === null || lng === null) {
+      alert("Invalid coordinates. Use decimal (9.9147) or DMS (9°54'53.0\"N) format.");
+      return;
+    }
     const payload = {
       title: form.title,
       description: form.description || null,
       password: form.password,
       gift_description: form.gift_description || null,
       letter: form.letter,
-      latitude: parseFloat(form.latitude),
-      longitude: parseFloat(form.longitude),
+      latitude: lat,
+      longitude: lng,
       radius_meters: parseInt(form.radius_meters) || 100,
       sort_order: parseInt(form.sort_order) || 0,
     };
@@ -240,8 +260,8 @@ const Admin = () => {
                   <input placeholder="Password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} className="px-3 py-2 rounded-lg border border-input bg-background text-foreground text-sm font-body" />
                   <input placeholder="Letter" value={form.letter} maxLength={3} onChange={(e) => setForm({ ...form, letter: e.target.value })} className="px-3 py-2 rounded-lg border border-input bg-background text-foreground text-sm font-body" />
                   <input placeholder="Gift description" value={form.gift_description} onChange={(e) => setForm({ ...form, gift_description: e.target.value })} className="col-span-2 px-3 py-2 rounded-lg border border-input bg-background text-foreground text-sm font-body" />
-                  <input placeholder="Latitude" type="number" step="any" value={form.latitude} onChange={(e) => setForm({ ...form, latitude: e.target.value })} className="px-3 py-2 rounded-lg border border-input bg-background text-foreground text-sm font-body" />
-                  <input placeholder="Longitude" type="number" step="any" value={form.longitude} onChange={(e) => setForm({ ...form, longitude: e.target.value })} className="px-3 py-2 rounded-lg border border-input bg-background text-foreground text-sm font-body" />
+                  <input placeholder="Lat (e.g. 9°54'53.0&quot;N or 9.9147)" value={form.latitude} onChange={(e) => setForm({ ...form, latitude: e.target.value })} className="px-3 py-2 rounded-lg border border-input bg-background text-foreground text-sm font-body" />
+                  <input placeholder="Lng (e.g. 84°16'13.4&quot;W or -84.2704)" value={form.longitude} onChange={(e) => setForm({ ...form, longitude: e.target.value })} className="px-3 py-2 rounded-lg border border-input bg-background text-foreground text-sm font-body" />
                   <input placeholder="Radius (m)" type="number" value={form.radius_meters} onChange={(e) => setForm({ ...form, radius_meters: e.target.value })} className="px-3 py-2 rounded-lg border border-input bg-background text-foreground text-sm font-body" />
                   <input placeholder="Sort order" type="number" value={form.sort_order} onChange={(e) => setForm({ ...form, sort_order: e.target.value })} className="px-3 py-2 rounded-lg border border-input bg-background text-foreground text-sm font-body" />
                 </div>
