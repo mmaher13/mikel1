@@ -1,8 +1,9 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { Shield, LogOut, Plus, MapPin, Users, Gamepad2, Trash2, Edit } from "lucide-react";
+import { Heart, LogOut, Plus, MapPin, Users, Gamepad2, Trash2, Edit } from "lucide-react";
 import type { Tables } from "@/integrations/supabase/types";
+import FloatingHearts from "@/components/FloatingHearts";
 
 type Challenge = Tables<"challenges">;
 type Player = Tables<"players">;
@@ -161,18 +162,19 @@ const Admin = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-background">
-      <header className="border-b border-border px-4 py-3 flex items-center justify-between">
+    <div className="min-h-screen romantic-gradient relative overflow-hidden">
+      <FloatingHearts />
+      <header className="relative z-10 glass-card rounded-none px-4 py-3 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Shield className="w-5 h-5 text-primary" />
-          <h1 className="font-display text-lg font-bold text-foreground">Admin Console</h1>
+          <Heart className="w-5 h-5 text-primary fill-primary/30" />
+          <h1 className="font-display text-lg font-bold text-romantic">Admin Console</h1>
         </div>
         <button onClick={logout} className="text-muted-foreground hover:text-foreground">
           <LogOut className="w-5 h-5" />
         </button>
       </header>
 
-      <div className="flex border-b border-border">
+      <div className="relative z-10 flex glass-card rounded-none">
         {tabs.map((t) => (
           <button
             key={t.key}
@@ -187,12 +189,12 @@ const Admin = () => {
         ))}
       </div>
 
-      <div className="max-w-4xl mx-auto px-4 py-6">
+      <div className="relative z-10 max-w-4xl mx-auto px-4 py-6">
         {/* CHALLENGES TAB */}
         {tab === "challenges" && (
           <div>
             <div className="flex justify-between items-center mb-4">
-              <h2 className="font-display text-xl font-bold text-foreground">Challenges</h2>
+              <h2 className="font-display text-xl font-bold text-romantic">Challenges</h2>
               <button
                 onClick={() => { resetForm(); setShowForm(true); }}
                 className="px-4 py-2 rounded-xl bg-primary text-primary-foreground text-sm font-body flex items-center gap-1.5"
@@ -202,7 +204,7 @@ const Admin = () => {
             </div>
 
             {showForm && (
-              <div className="bg-card border border-border rounded-xl p-4 mb-4 space-y-3">
+              <div className="glass-card rounded-2xl p-4 mb-4 space-y-3">
                 <div className="grid grid-cols-2 gap-3">
                   <input placeholder="Title" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} className="col-span-2 px-3 py-2 rounded-lg border border-input bg-background text-foreground text-sm font-body" />
                   <input placeholder="Description" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} className="col-span-2 px-3 py-2 rounded-lg border border-input bg-background text-foreground text-sm font-body" />
@@ -225,7 +227,7 @@ const Admin = () => {
 
             <div className="space-y-2">
               {challenges.map((c) => (
-                <div key={c.id} className="bg-card border border-border rounded-xl p-4 flex items-start justify-between">
+                <div key={c.id} className="glass-card rounded-2xl p-4 flex items-start justify-between">
                   <div>
                     <div className="flex items-center gap-2">
                       <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded font-body">#{c.sort_order}</span>
@@ -257,7 +259,7 @@ const Admin = () => {
         {tab === "players" && (
           <div>
             <div className="flex justify-between items-center mb-4">
-              <h2 className="font-display text-xl font-bold text-foreground">Players</h2>
+              <h2 className="font-display text-xl font-bold text-romantic">Players</h2>
               <button
                 onClick={() => setShowPlayerForm(true)}
                 className="px-4 py-2 rounded-xl bg-primary text-primary-foreground text-sm font-body flex items-center gap-1.5"
@@ -267,7 +269,7 @@ const Admin = () => {
             </div>
 
             {showPlayerForm && (
-              <div className="bg-card border border-border rounded-xl p-4 mb-4 space-y-3">
+              <div className="glass-card rounded-2xl p-4 mb-4 space-y-3">
                 <input placeholder="Player name" value={playerForm.name} onChange={(e) => setPlayerForm({ ...playerForm, name: e.target.value })} className="w-full px-3 py-2 rounded-lg border border-input bg-background text-foreground text-sm font-body" />
                 <input placeholder="Access code (e.g. LOVE2024)" value={playerForm.code} onChange={(e) => setPlayerForm({ ...playerForm, code: e.target.value.toUpperCase() })} className="w-full px-3 py-2 rounded-lg border border-input bg-background text-foreground text-sm font-body" />
                 <div className="flex gap-2">
@@ -279,7 +281,7 @@ const Admin = () => {
 
             <div className="space-y-2">
               {players.map((p) => (
-                <div key={p.id} className="bg-card border border-border rounded-xl p-4 flex items-center justify-between">
+                <div key={p.id} className="glass-card rounded-2xl p-4 flex items-center justify-between">
                   <div>
                     <p className="font-body font-medium text-foreground">{p.name}</p>
                     <p className="text-muted-foreground text-sm font-body">Code: <span className="font-mono text-primary">{p.code}</span></p>
@@ -299,11 +301,11 @@ const Admin = () => {
         {/* LOCATIONS TAB */}
         {tab === "locations" && (
           <div>
-            <h2 className="font-display text-xl font-bold text-foreground mb-4">Player Locations</h2>
+            <h2 className="font-display text-xl font-bold text-romantic mb-4">Player Locations</h2>
             <p className="text-muted-foreground text-sm font-body mb-4">Real-time GPS tracking (updates every 15 min)</p>
             <div className="space-y-2">
               {locations.map((l) => (
-                <div key={l.id} className="bg-card border border-border rounded-xl p-3 flex items-center justify-between">
+                <div key={l.id} className="glass-card rounded-2xl p-3 flex items-center justify-between">
                   <div>
                     <p className="font-body text-sm font-medium text-foreground">{l.players?.name || "Unknown"}</p>
                     <p className="text-muted-foreground text-xs font-body">
