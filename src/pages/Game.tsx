@@ -173,7 +173,7 @@ const Game = () => {
         >
           <Heart className="w-10 h-10 text-primary mx-auto mb-4 heart-float fill-primary/30" />
           <h1 className="font-display text-3xl md:text-4xl font-bold text-romantic mb-2">
-            Adventure Challenges
+            Mikel Lifestyle...
           </h1>
 
 
