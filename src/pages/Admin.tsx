@@ -1,9 +1,10 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Heart, LogOut, Plus, MapPin, Users, Gamepad2, Trash2, Edit } from "lucide-react";
 import type { Tables } from "@/integrations/supabase/types";
 import FloatingHearts from "@/components/FloatingHearts";
+import LocationDayMap from "@/components/LocationDayMap";
 
 type Challenge = Tables<"challenges">;
 type Player = Tables<"players">;
@@ -78,13 +79,41 @@ const Admin = () => {
   };
 
   const loadLocations = async () => {
+    const weekAgo = new Date();
+    weekAgo.setDate(weekAgo.getDate() - 7);
     const { data } = await supabase
       .from("player_locations")
       .select("id, player_id, latitude, longitude, recorded_at, players(name)")
-      .order("recorded_at", { ascending: false })
-      .limit(100);
+      .gte("recorded_at", weekAgo.toISOString())
+      .order("recorded_at", { ascending: false });
     if (data) setLocations(data as unknown as PlayerLocation[]);
   };
+
+  // Group locations by day for maps
+  const locationsByDay = useMemo(() => {
+    const days: Record<string, Array<{ id: string; player_id: string; latitude: number; longitude: number; recorded_at: string; player_name: string }>> = {};
+    // Generate last 7 days
+    for (let i = 0; i < 7; i++) {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      const key = d.toISOString().slice(0, 10);
+      days[key] = [];
+    }
+    locations.forEach((l) => {
+      const key = l.recorded_at.slice(0, 10);
+      if (days[key]) {
+        days[key].push({
+          id: l.id,
+          player_id: l.player_id,
+          latitude: l.latitude,
+          longitude: l.longitude,
+          recorded_at: l.recorded_at,
+          player_name: l.players?.name || "Unknown",
+        });
+      }
+    });
+    return Object.entries(days).sort(([a], [b]) => b.localeCompare(a));
+  }, [locations]);
 
   const saveChallenge = async () => {
     const payload = {
@@ -301,35 +330,12 @@ const Admin = () => {
         {/* LOCATIONS TAB */}
         {tab === "locations" && (
           <div>
-            <h2 className="font-display text-xl font-bold text-romantic mb-4">Player Locations</h2>
-            <p className="text-muted-foreground text-sm font-body mb-4">Real-time GPS tracking (updates every 15 min)</p>
-            <div className="space-y-2">
-              {locations.map((l) => (
-                <div key={l.id} className="glass-card rounded-2xl p-3 flex items-center justify-between">
-                  <div>
-                    <p className="font-body text-sm font-medium text-foreground">{l.players?.name || "Unknown"}</p>
-                    <p className="text-muted-foreground text-xs font-body">
-                      📍 {l.latitude.toFixed(5)}, {l.longitude.toFixed(5)}
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-muted-foreground text-xs font-body">
-                      {new Date(l.recorded_at).toLocaleString()}
-                    </p>
-                    <a
-                      href={`https://maps.google.com/?q=${l.latitude},${l.longitude}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-primary text-xs font-body hover:underline"
-                    >
-                      View on map →
-                    </a>
-                  </div>
-                </div>
+            <h2 className="font-display text-xl font-bold text-romantic mb-2">Player Locations</h2>
+            <p className="text-muted-foreground text-sm font-body mb-4">Last 7 days of GPS tracking (updates every 15 min)</p>
+            <div className="space-y-4">
+              {locationsByDay.map(([date, locs]) => (
+                <LocationDayMap key={date} date={date} locations={locs} />
               ))}
-              {locations.length === 0 && (
-                <p className="text-muted-foreground text-center py-8 font-body">No location data yet.</p>
-              )}
             </div>
           </div>
         )}
