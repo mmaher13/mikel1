@@ -7,6 +7,7 @@ import { getPlayer, clearPlayer } from "@/lib/playerStore";
 import { useGeolocation } from "@/hooks/useGeolocation";
 import FloatingHearts from "@/components/FloatingHearts";
 import BackgroundMusic from "@/components/BackgroundMusic";
+import ChallengeMapPreview from "@/components/ChallengeMapPreview";
 
 interface Challenge {
   id: string;
@@ -303,10 +304,21 @@ const Game = () => {
                   </div>
                 )}
 
-                {!isDone && !isNear && (
-                  <p className="text-muted-foreground pl-[52px] font-body italic text-sm">
-                    Get closer to this location to unlock...
-                  </p>
+                {!isDone && (
+                  <div className="pl-[52px]">
+                    {!isNear && (
+                      <p className="text-muted-foreground font-body italic text-sm mb-2">
+                        Get closer to this location to unlock...
+                      </p>
+                    )}
+                    <ChallengeMapPreview
+                      latitude={c.latitude}
+                      longitude={c.longitude}
+                      radiusMeters={c.radius_meters}
+                      playerPosition={position}
+                      title={c.title}
+                    />
+                  </div>
                 )}
               </motion.div>
             );
