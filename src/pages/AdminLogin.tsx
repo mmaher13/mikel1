@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Shield, LogIn } from "lucide-react";
+import { Heart, LogIn } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import FloatingHearts from "@/components/FloatingHearts";
 
 const AdminLogin = () => {
   const [email, setEmail] = useState("");
@@ -61,15 +62,16 @@ const AdminLogin = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center">
+    <div className="min-h-screen romantic-gradient relative overflow-hidden flex items-center justify-center">
+      <FloatingHearts />
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="bg-card border border-border rounded-2xl p-8 max-w-md w-full mx-4 shadow-lg"
+        className="relative z-10 glass-card rounded-3xl p-8 max-w-md w-full mx-4"
       >
         <div className="text-center mb-8">
-          <Shield className="w-10 h-10 text-primary mx-auto mb-4" />
-          <h1 className="font-display text-2xl font-bold text-foreground">Admin Console</h1>
+          <Heart className="w-10 h-10 text-primary mx-auto mb-4 heart-float fill-primary/30" />
+          <h1 className="font-display text-2xl font-bold text-romantic">Admin Console</h1>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
