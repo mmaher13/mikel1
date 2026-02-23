@@ -1,9 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Heart, LogIn } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { setPlayer } from "@/lib/playerStore";
+import { setPlayer, getPlayer } from "@/lib/playerStore";
 import FloatingHearts from "@/components/FloatingHearts";
 
 const PlayerLogin = () => {
@@ -11,6 +11,13 @@ const PlayerLogin = () => {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+
+  // Auto-redirect if already logged in
+  useEffect(() => {
+    if (getPlayer()) {
+      navigate("/game", { replace: true });
+    }
+  }, [navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
