@@ -5,6 +5,34 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+function isValidUUID(v: unknown): v is string {
+  return typeof v === "string" && UUID_RE.test(v);
+}
+
+function isValidCoord(lat: unknown, lon: unknown): boolean {
+  return (
+    typeof lat === "number" && typeof lon === "number" &&
+    lat >= -90 && lat <= 90 && lon >= -180 && lon <= 180 &&
+    isFinite(lat) && isFinite(lon)
+  );
+}
+
+function errorResponse(status: number, msg = "Request failed") {
+  return new Response(JSON.stringify({ error: msg }), {
+    status,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+}
+
+function jsonResponse(data: unknown, status = 200) {
+  return new Response(JSON.stringify(data), {
+    status,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -21,10 +49,7 @@ Deno.serve(async (req) => {
     if (action === "login") {
       const { code } = data;
       if (!code || typeof code !== "string" || code.length > 50) {
-        return new Response(JSON.stringify({ error: "Invalid code" }), {
-          status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
+        return errorResponse(400);
       }
       const { data: player, error } = await supabase
         .from("players")
@@ -33,34 +58,68 @@ Deno.serve(async (req) => {
         .single();
 
       if (error || !player || !player.is_active) {
-        return new Response(JSON.stringify({ error: "Invalid code" }), {
-          status: 401,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
+        return errorResponse(401, "Invalid code");
       }
-      return new Response(JSON.stringify({ player: { id: player.id, name: player.name } }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return jsonResponse({ player: { id: player.id, name: player.name } });
+    }
+
+    if (action === "get-challenges") {
+      const { data: challengeList, error: clErr } = await supabase
+        .from("challenges")
+        .select("id, title, description, letter, latitude, longitude, radius_meters, sort_order, gift_description")
+        .eq("is_active", true)
+        .order("sort_order");
+
+      if (clErr) {
+        console.error("get-challenges error:", clErr.message);
+        return errorResponse(500);
+      }
+      return jsonResponse({ challenges: challengeList });
+    }
+
+    if (action === "get-progress") {
+      const { player_id } = data;
+      if (!isValidUUID(player_id)) {
+        return errorResponse(400);
+      }
+      const { data: progressList, error: plErr } = await supabase
+        .from("player_progress")
+        .select("challenge_id")
+        .eq("player_id", player_id);
+
+      if (plErr) {
+        console.error("get-progress error:", plErr.message);
+        return errorResponse(500);
+      }
+      return jsonResponse({ progress: progressList });
     }
 
     if (action === "track-location") {
       const { player_id, latitude, longitude } = data;
-      if (!player_id || typeof latitude !== "number" || typeof longitude !== "number") {
-        return new Response(JSON.stringify({ error: "Invalid data" }), {
-          status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
+      if (!isValidUUID(player_id) || !isValidCoord(latitude, longitude)) {
+        return errorResponse(400);
       }
+
+      // Verify player exists
+      const { data: playerCheck } = await supabase
+        .from("players")
+        .select("id")
+        .eq("id", player_id)
+        .eq("is_active", true)
+        .single();
+
+      if (!playerCheck) {
+        return errorResponse(401);
+      }
+
       const { error } = await supabase.from("player_locations").insert({
         player_id,
         latitude,
         longitude,
       });
       if (error) {
-        return new Response(JSON.stringify({ error: error.message }), {
-          status: 500,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
+        console.error("track-location error:", error.message);
+        return errorResponse(500);
       }
 
       // Cleanup locations older than 7 days
@@ -71,18 +130,31 @@ Deno.serve(async (req) => {
         .delete()
         .lt("recorded_at", weekAgo.toISOString());
 
-      return new Response(JSON.stringify({ success: true }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return jsonResponse({ success: true });
     }
 
     if (action === "attempt-challenge") {
       const { player_id, challenge_id, password, latitude, longitude } = data;
-      if (!player_id || !challenge_id || !password) {
-        return new Response(JSON.stringify({ error: "Missing fields" }), {
-          status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
+      if (!isValidUUID(player_id) || !isValidUUID(challenge_id)) {
+        return errorResponse(400);
+      }
+      if (!password || typeof password !== "string" || password.length > 100) {
+        return errorResponse(400);
+      }
+      if (!isValidCoord(latitude, longitude)) {
+        return errorResponse(400, "Location required");
+      }
+
+      // Verify player exists
+      const { data: playerCheck } = await supabase
+        .from("players")
+        .select("id")
+        .eq("id", player_id)
+        .eq("is_active", true)
+        .single();
+
+      if (!playerCheck) {
+        return errorResponse(401);
       }
 
       // Get challenge
@@ -93,34 +165,18 @@ Deno.serve(async (req) => {
         .single();
 
       if (cErr || !challenge) {
-        return new Response(JSON.stringify({ error: "Challenge not found" }), {
-          status: 404,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
+        return errorResponse(400);
       }
 
       // Check proximity
-      if (typeof latitude === "number" && typeof longitude === "number") {
-        const dist = haversine(latitude, longitude, challenge.latitude, challenge.longitude);
-        if (dist > challenge.radius_meters) {
-          return new Response(
-            JSON.stringify({ error: "Too far from challenge location", distance: Math.round(dist) }),
-            { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-          );
-        }
-      } else {
-        return new Response(JSON.stringify({ error: "Location required" }), {
-          status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
+      const dist = haversine(latitude, longitude, challenge.latitude, challenge.longitude);
+      if (dist > challenge.radius_meters) {
+        return errorResponse(403, "Too far from challenge location");
       }
 
       // Check password
       if (password.toLowerCase().trim() !== challenge.password.toLowerCase().trim()) {
-        return new Response(JSON.stringify({ error: "Wrong password" }), {
-          status: 401,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
+        return errorResponse(401, "Wrong password");
       }
 
       // Check if already completed
@@ -138,26 +194,18 @@ Deno.serve(async (req) => {
         });
       }
 
-      return new Response(
-        JSON.stringify({
-          success: true,
-          letter: challenge.letter,
-          gift: challenge.gift_description,
-          challenge_title: challenge.title,
-        }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return jsonResponse({
+        success: true,
+        letter: challenge.letter,
+        gift: challenge.gift_description,
+        challenge_title: challenge.title,
+      });
     }
 
-    return new Response(JSON.stringify({ error: "Unknown action" }), {
-      status: 400,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return errorResponse(400);
   } catch (e) {
-    return new Response(JSON.stringify({ error: "Server error" }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    console.error("Server error:", e);
+    return errorResponse(500);
   }
 });
 
