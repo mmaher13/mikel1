@@ -1,1 +1,4 @@
 project_id = "byjcnzsqjvhppmqqdhlk"
+
+[functions.player-api]
+verify_jwt = false
