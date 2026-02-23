@@ -1,28 +1,25 @@
-import { MapContainer, TileLayer, CircleMarker, Marker } from "react-leaflet";
+import { useState } from "react";
+import { MapContainer, TileLayer, CircleMarker } from "react-leaflet";
 import { Navigation } from "lucide-react";
 import "leaflet/dist/leaflet.css";
-import L from "leaflet";
-
-// Fix default marker icon
-const defaultIcon = L.icon({
-  iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
-  iconRetinaUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
-  shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-});
 
 interface ChallengeMapPreviewProps {
   latitude: number;
   longitude: number;
   radiusMeters: number;
-  playerPosition?: { latitude: number; longitude: number } | null;
+  hasGps: boolean;
   title: string;
 }
 
-const ChallengeMapPreview = ({ latitude, longitude, radiusMeters, playerPosition, title }: ChallengeMapPreviewProps) => {
+const ChallengeMapPreview = ({ latitude, longitude, radiusMeters, hasGps, title }: ChallengeMapPreviewProps) => {
+  const [dirError, setDirError] = useState<string | null>(null);
+
   const openDirections = () => {
-    // Use Google Maps directions URL (works on both iOS and Android)
+    if (!hasGps) {
+      setDirError("Please enable location access to get directions.");
+      return;
+    }
+    setDirError(null);
     const url = `https://www.google.com/maps/dir/?api=1&destination=${latitude},${longitude}&travelmode=walking`;
     window.open(url, "_blank");
   };
@@ -50,12 +47,6 @@ const ChallengeMapPreview = ({ latitude, longitude, radiusMeters, playerPosition
               weight: 2,
             }}
           />
-          {playerPosition && (
-            <Marker
-              position={[playerPosition.latitude, playerPosition.longitude]}
-              icon={defaultIcon}
-            />
-          )}
         </MapContainer>
       </div>
       <button
@@ -65,6 +56,9 @@ const ChallengeMapPreview = ({ latitude, longitude, radiusMeters, playerPosition
         <Navigation className="w-4 h-4" />
         Get Directions
       </button>
+      {dirError && (
+        <p className="text-destructive text-sm font-body text-center">{dirError}</p>
+      )}
     </div>
   );
 };
