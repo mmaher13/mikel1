@@ -315,7 +315,7 @@ const Game = () => {
                       latitude={c.latitude}
                       longitude={c.longitude}
                       radiusMeters={c.radius_meters}
-                      playerPosition={position}
+                      hasGps={!!position}
                       title={c.title}
                     />
                   </div>
